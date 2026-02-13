@@ -22,3 +22,7 @@ build/
 # Python virtual env
 code/.venv/
 .venv/
+
+# Python virtual env
+code/.venv/
+.venv/

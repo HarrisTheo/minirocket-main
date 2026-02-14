@@ -18,8 +18,8 @@ parser.add_argument("-n", "--num_runs", type=int, default=10)
 parser.add_argument("-k", "--num_kernels", type=int, default=10_000)
 args = parser.parse_args()
 
-"""dataset_names_additional = (
-    "SPY","mitdb_data","ACSF1","AllGestureWiimoteX","AllGestureWiimoteY","AllGestureWiimoteZ","BME",
+dataset_names_additional = (
+    "SPY","ACSF1","AllGestureWiimoteX","AllGestureWiimoteY","AllGestureWiimoteZ","BME",
     "Chinatown","Crop","DodgerLoopDay","DodgerLoopGame","DodgerLoopWeekend",
     "EOGHorizontalSignal","EOGVerticalSignal","EthanolLevel","FreezerRegularTrain",
     "FreezerSmallTrain","Fungi","GestureMidAirD1","GestureMidAirD2","GestureMidAirD3",
@@ -29,9 +29,7 @@ args = parser.parse_args()
     "PickupGestureWiimoteZ","PigAirwayPressure","PigArtPressure","PigCVP","PowerCons",
     "Rock","SemgHandGenderCh2","SemgHandMovementCh2","SemgHandSubjectCh2",
     "ShakeGestureWiimoteZ","SmoothSubspace","UMD"
-)"""
-
-dataset_names_additional = ("SPY","ACSF1")
+)
 
 def run_minirocket_once(training_data, test_data):
     y_train = training_data[:, 0].astype(int)
@@ -40,7 +38,6 @@ def run_minirocket_once(training_data, test_data):
 
     y_test = test_data[:, 0].astype(int)
     X_test = test_data[:, 1:].astype(np.float32)
-    X_test = np.diff(X_test, axis=1).astype(np.float32)
 
     t0 = time.perf_counter()
     parameters = fit(X_train)

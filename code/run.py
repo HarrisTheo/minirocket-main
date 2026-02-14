@@ -19,7 +19,7 @@ parser.add_argument("-k", "--num_kernels", type=int, default=10_000)
 args = parser.parse_args()
 
 dataset_names_additional = (
-    "ACSF1","AllGestureWiimoteX","AllGestureWiimoteY","AllGestureWiimoteZ","BME",
+    "mitdb_data","ACSF1","AllGestureWiimoteX","AllGestureWiimoteY","AllGestureWiimoteZ","BME",
     "Chinatown","Crop","DodgerLoopDay","DodgerLoopGame","DodgerLoopWeekend",
     "EOGHorizontalSignal","EOGVerticalSignal","EthanolLevel","FreezerRegularTrain",
     "FreezerSmallTrain","Fungi","GestureMidAirD1","GestureMidAirD2","GestureMidAirD3",
@@ -81,7 +81,6 @@ results_additional = pd.DataFrame(
     data=0.0,
 )
 results_additional.index.name = "dataset"
-
 
 print("RUNNING".center(80, "="))
 

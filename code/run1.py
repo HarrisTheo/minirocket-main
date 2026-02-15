@@ -12,6 +12,7 @@ from sklearn.preprocessing import StandardScaler
 # SINGLE RUN (PURE MINIROCKET)
 # ==========================================================
 def run_minirocket_once(training_data, test_data):
+
     y_train = training_data[:, 0].astype(int)
     X_train = training_data[:, 1:].astype(np.float32)
 
@@ -49,6 +50,7 @@ def run_minirocket_once(training_data, test_data):
     # Transform Test Data
     # --------------------------------------------------
     X_test_t = transform(X_test, parameters)
+    X_test_t = scaler.transform(X_test_t)
     t4 = time.perf_counter()
 
     # --------------------------------------------------

@@ -11,7 +11,6 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
-
 # ==========================================================
 # AEN PLASTICITY REGULATOR (NO Q-VALUES)
 # ==========================================================
@@ -136,7 +135,6 @@ def run_minirocket_once(training_data, test_data):
 
     return acc, timings
 
-
 # ==========================================================
 # MULTIPLE RUNS
 # ==========================================================
@@ -234,13 +232,9 @@ for dataset_name in dataset_names_additional:
     results_additional.loc[dataset_name, "accuracy_mean"] = results.mean()
     results_additional.loc[dataset_name, "accuracy_standard_deviation"] = results.std(ddof=0)
 
-    results_additional.loc[dataset_name, "time_training_seconds"] = (
-        timings_mean[0] + timings_mean[1] + timings_mean[2]
-    )
+    results_additional.loc[dataset_name, "time_training_seconds"] = ( timings_mean[0] + timings_mean[1] + timings_mean[2])
 
-    results_additional.loc[dataset_name, "time_test_seconds"] = (
-        timings_mean[3] + timings_mean[4]
-    )
+    results_additional.loc[dataset_name, "time_test_seconds"] = ( timings_mean[3] + timings_mean[4])
 
 print("FINISHED".center(80, "="))
 results_additional.to_csv(f"{args.output_path}results_additional6.csv")

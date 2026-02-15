@@ -2,6 +2,8 @@ import argparse
 import time
 import numpy as np
 import pandas as pd
+import time
+import numpy as np
 from sklearn.linear_model import RidgeClassifierCV
 from sklearn.svm import LinearSVC
 
@@ -18,7 +20,7 @@ parser.add_argument("-n", "--num_runs", type=int, default=10)
 parser.add_argument("-k", "--num_kernels", type=int, default=10_000)
 args = parser.parse_args()
 
-dataset_names_additional = (
+"""dataset_names_additional = (
     "SPY","ACSF1","AllGestureWiimoteX","AllGestureWiimoteY","AllGestureWiimoteZ","BME",
     "Chinatown","Crop","DodgerLoopDay","DodgerLoopGame","DodgerLoopWeekend",
     "EOGHorizontalSignal","EOGVerticalSignal","EthanolLevel","FreezerRegularTrain",
@@ -29,12 +31,13 @@ dataset_names_additional = (
     "PickupGestureWiimoteZ","PigAirwayPressure","PigArtPressure","PigCVP","PowerCons",
     "Rock","SemgHandGenderCh2","SemgHandMovementCh2","SemgHandSubjectCh2",
     "ShakeGestureWiimoteZ","SmoothSubspace","UMD"
-)
+)"""
 
-def run_minirocket_once(training_data, test_data):
+dataset_names_additional = ("SPY","ACSF1")
+
+def run_minirocket_once(training_data, test_data, decay=0.995):
     y_train = training_data[:, 0].astype(int)
     X_train = training_data[:, 1:].astype(np.float32)
-    X_train = np.diff(X_train, axis=1).astype(np.float32)
 
     y_test = test_data[:, 0].astype(int)
     X_test = test_data[:, 1:].astype(np.float32)
@@ -46,8 +49,11 @@ def run_minirocket_once(training_data, test_data):
     X_train_t = transform(X_train, parameters)
     t2 = time.perf_counter()
 
+    n = y_train.shape[0]
+    sample_weight = decay ** (np.arange(n - 1, -1, -1, dtype=np.float64))
     clf = RidgeClassifierCV(alphas=10 ** np.linspace(-3, 3, 10))
 
+    #clf.fit(X_train_t, y_train, sample_weight=sample_weight)
     clf.fit(X_train_t, y_train)
     t3 = time.perf_counter()
 
@@ -71,16 +77,7 @@ def run_minirocket(training_data, test_data, num_runs = 10):
 
     return results, timings
 
-results_additional = pd.DataFrame(
-    index=dataset_names_additional,
-    columns=[
-        "accuracy_mean",
-        "accuracy_standard_deviation",
-        "time_training_seconds",
-        "time_test_seconds",
-    ],
-    data=0.0,
-)
+results_additional = pd.DataFrame(index=dataset_names_additional, columns=["accuracy_mean", "accuracy_standard_deviation", "time_training_seconds", "time_test_seconds"], data=0.0,)
 results_additional.index.name = "dataset"
 
 print("RUNNING".center(80, "="))

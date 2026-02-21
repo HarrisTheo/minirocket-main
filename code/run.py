@@ -11,6 +11,8 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
+from pandas import DataFrame
+
 # ==========================================================
 # AEN PLASTICITY REGULATOR (NO Q-VALUES)
 # ==========================================================
@@ -47,18 +49,15 @@ class AENRegulator:
         # Non-linear modulation
         return 1 + 4 * (self.c_drive ** 2)
 
-
 # ==========================================================
 # SINGLE RUN
 # ==========================================================
 def run_minirocket_once(training_data, test_data):
-
     y_train = training_data[:, 0].astype(int)
     X_train = training_data[:, 1:].astype(np.float32)
 
     y_test = test_data[:, 0].astype(int)
     X_test = test_data[:, 1:].astype(np.float32)
-
     # --------------------------------------------------
     # MiniRocket Fit
     # --------------------------------------------------
@@ -86,7 +85,8 @@ def run_minirocket_once(training_data, test_data):
         eta0=0.01
     )
 
-    clf.partial_fit(X_train_t, y_train, classes=np.unique(y_train))
+    #clf.partial_fit(X_train_t, y_train, classes=np.unique(y_train))
+    clf.fit(X_train_t, y_train)
     t3 = time.perf_counter()
 
     # --------------------------------------------------
@@ -114,12 +114,11 @@ def run_minirocket_once(training_data, test_data):
 
         error = int(y_pred != y_true)
 
-        # Update AEN regulator
         regulator.update(error)
 
-        # Modulate learning rate
-        clf.eta0 = base_lr * regulator.scale()
-
+        cap = 0.01 / np.sqrt(i + 1)
+        clf.eta0 = min(base_lr * regulator.scale(), cap)
+       
         clf.partial_fit(x, [y_true])
 
     acc = np.mean(np.array(preds) == y_test)
@@ -138,7 +137,7 @@ def run_minirocket_once(training_data, test_data):
 # ==========================================================
 # MULTIPLE RUNS
 # ==========================================================
-def run_minirocket(training_data, test_data, num_runs=10):
+def run_minirocket(training_data, test_data, num_runs=1):
 
     results = np.zeros(num_runs, dtype=np.float64)
     timings = np.zeros((5, num_runs), dtype=np.float64)
@@ -150,7 +149,6 @@ def run_minirocket(training_data, test_data, num_runs=10):
 
     return results, timings
 
-
 # ==========================================================
 # MAIN SCRIPT
 # ==========================================================
@@ -161,7 +159,6 @@ parser.add_argument("-n", "--num_runs", type=int, default=10)
 parser.add_argument("-k", "--num_kernels", type=int, default=10_000)
 args = parser.parse_args()
 
-"""
 dataset_names_additional = (
     "SPY","ACSF1","AllGestureWiimoteX","AllGestureWiimoteY","AllGestureWiimoteZ","BME",
     "Chinatown","Crop","DodgerLoopDay","DodgerLoopGame","DodgerLoopWeekend",
@@ -174,9 +171,8 @@ dataset_names_additional = (
     "Rock","SemgHandGenderCh2","SemgHandMovementCh2","SemgHandSubjectCh2",
     "ShakeGestureWiimoteZ","SmoothSubspace","UMD"
 )
-"""
 
-dataset_names_additional = ("SPY","ACSF1")
+#dataset_names_additional = ( "SPY", "GestureMidAirD1","GestureMidAirD2")
 
 results_additional = pd.DataFrame(
     index=dataset_names_additional,

@@ -6,7 +6,7 @@ import pandas as pd
 from minirocket import fit, transform
 from sklearn.linear_model import RidgeClassifierCV
 from sklearn.preprocessing import StandardScaler
-
+from sklearn.linear_model import SGDClassifier
 
 # ==========================================================
 # SINGLE RUN (PURE MINIROCKET)
@@ -33,13 +33,6 @@ def run_minirocket_once(training_data, test_data):
     t2 = time.perf_counter()
 
     # --------------------------------------------------
-    # Scale Features
-    # --------------------------------------------------
-    scaler = StandardScaler(with_mean=False)
-    scaler.fit(X_train_t)
-    X_train_t = scaler.transform(X_train_t)
-
-    # --------------------------------------------------
     # Train Classifier (STATIC)
     # --------------------------------------------------
     clf = RidgeClassifierCV(alphas=10 ** np.linspace(-3, 3, 10))
@@ -50,7 +43,6 @@ def run_minirocket_once(training_data, test_data):
     # Transform Test Data
     # --------------------------------------------------
     X_test_t = transform(X_test, parameters)
-    X_test_t = scaler.transform(X_test_t)
     t4 = time.perf_counter()
 
     # --------------------------------------------------
@@ -69,7 +61,6 @@ def run_minirocket_once(training_data, test_data):
 
     return acc, timings
 
-
 # ==========================================================
 # MULTIPLE RUNS
 # ==========================================================
@@ -85,7 +76,6 @@ def run_minirocket(training_data, test_data, num_runs=10):
 
     return results, timings
 
-
 # ==========================================================
 # MAIN SCRIPT
 # ==========================================================
@@ -95,7 +85,20 @@ parser.add_argument("-o", "--output_path", required=True)
 parser.add_argument("-n", "--num_runs", type=int, default=10)
 args = parser.parse_args()
 
-dataset_names_additional = ("SPY", "ACSF1")
+dataset_names_additional = (
+    "SPY","ACSF1","AllGestureWiimoteX","AllGestureWiimoteY","AllGestureWiimoteZ","BME",
+    "Chinatown","Crop","DodgerLoopDay","DodgerLoopGame","DodgerLoopWeekend",
+    "EOGHorizontalSignal","EOGVerticalSignal","EthanolLevel","FreezerRegularTrain",
+    "FreezerSmallTrain","Fungi","GestureMidAirD1","GestureMidAirD2","GestureMidAirD3",
+    "GesturePebbleZ1","GesturePebbleZ2","GunPointAgeSpan","GunPointMaleVersusFemale",
+    "GunPointOldVersusYoung","HouseTwenty","InsectEPGRegularTrain","InsectEPGSmallTrain",
+    "MelbournePedestrian","MixedShapesRegularTrain","MixedShapesSmallTrain","PLAID",
+    "PickupGestureWiimoteZ","PigAirwayPressure","PigArtPressure","PigCVP","PowerCons",
+    "Rock","SemgHandGenderCh2","SemgHandMovementCh2","SemgHandSubjectCh2",
+    "ShakeGestureWiimoteZ","SmoothSubspace","UMD"
+)
+
+#dataset_names_additional = ("GestureMidAirD1","GestureMidAirD2")
 
 results_additional = pd.DataFrame(
     index=dataset_names_additional,

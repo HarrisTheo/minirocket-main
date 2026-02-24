@@ -1,12 +1,17 @@
 import argparse
 import time
-import os
 import numpy as np
 import pandas as pd
 
+from sklearn.linear_model import RidgeClassifierCV
+from sklearn.svm import LinearSVC
 from minirocket import fit, transform
+from sklearn.neural_network import MLPClassifier
 from sklearn.linear_model import SGDClassifier
+from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
+
+from pandas import DataFrame
 
 # ==========================================================
 # AEN PLASTICITY REGULATOR (NO Q-VALUES)
@@ -17,6 +22,7 @@ class AENRegulator:
     It does NOT choose actions.
     It only regulates adaptation pressure.
     """
+
     def __init__(self):
         self.ego = 0.5
         self.c_drive = 0.5
@@ -44,41 +50,6 @@ class AENRegulator:
         return 1 + 4 * (self.c_drive ** 2)
 
 # ==========================================================
-# TSV LOADER
-# ==========================================================
-def load_tsv(path: str) -> np.ndarray:
-    """
-    Loads a TSV where:
-      - first column is the class label
-      - remaining columns are the series values
-    Returns a numpy array (like np.loadtxt would).
-    """
-    df = pd.read_csv(path, sep="\t", header=None)
-    return df.to_numpy()
-
-# ==========================================================
-# DATASET DISCOVERY (TSV VERSION)
-# ==========================================================
-def discover_ucr2018_tsv_datasets(input_path: str):
-    """
-    Discover datasets by scanning subfolders and keeping only those
-    that contain <name>_TRAIN.tsv and <name>_TEST.tsv.
-    """
-    dataset_names = []
-    for name in sorted(os.listdir(input_path)):
-        ds_dir = os.path.join(input_path, name)
-        if not os.path.isdir(ds_dir):
-            continue
-
-        train_path = os.path.join(ds_dir, f"{name}_TRAIN.tsv")
-        test_path  = os.path.join(ds_dir, f"{name}_TEST.tsv")
-
-        if os.path.isfile(train_path) and os.path.isfile(test_path):
-            dataset_names.append(name)
-
-    return tuple(dataset_names)
-
-# ==========================================================
 # SINGLE RUN
 # ==========================================================
 def run_minirocket_once(training_data, test_data):
@@ -87,7 +58,6 @@ def run_minirocket_once(training_data, test_data):
 
     y_test = test_data[:, 0].astype(int)
     X_test = test_data[:, 1:].astype(np.float32)
-
     # --------------------------------------------------
     # MiniRocket Fit
     # --------------------------------------------------
@@ -103,6 +73,7 @@ def run_minirocket_once(training_data, test_data):
     # --------------------------------------------------
     scaler = StandardScaler(with_mean=False)
     scaler.fit(X_train_t)
+
     X_train_t = scaler.transform(X_train_t)
 
     # --------------------------------------------------
@@ -114,6 +85,7 @@ def run_minirocket_once(training_data, test_data):
         eta0=0.01
     )
 
+    #clf.partial_fit(X_train_t, y_train, classes=np.unique(y_train))
     clf.fit(X_train_t, y_train)
     t3 = time.perf_counter()
 
@@ -133,6 +105,7 @@ def run_minirocket_once(training_data, test_data):
     base_lr = 0.01
 
     for i in range(len(X_test_t)):
+
         x = X_test_t[i:i+1]
         y_true = y_test[i]
 
@@ -140,11 +113,12 @@ def run_minirocket_once(training_data, test_data):
         preds.append(y_pred)
 
         error = int(y_pred != y_true)
+
         regulator.update(error)
 
         cap = 0.01 / np.sqrt(i + 1)
         clf.eta0 = min(base_lr * regulator.scale(), cap)
-
+       
         clf.partial_fit(x, [y_true])
 
     acc = np.mean(np.array(preds) == y_test)
@@ -164,6 +138,7 @@ def run_minirocket_once(training_data, test_data):
 # MULTIPLE RUNS
 # ==========================================================
 def run_minirocket(training_data, test_data, num_runs=1):
+
     results = np.zeros(num_runs, dtype=np.float64)
     timings = np.zeros((5, num_runs), dtype=np.float64)
 
@@ -181,21 +156,23 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input_path", required=True)
 parser.add_argument("-o", "--output_path", required=True)
 parser.add_argument("-n", "--num_runs", type=int, default=10)
-parser.add_argument("-k", "--num_kernels", type=int, default=10_000)  # kept for compatibility
+parser.add_argument("-k", "--num_kernels", type=int, default=10_000)
 args = parser.parse_args()
 
 dataset_names_additional = (
-    "SPY","AllGestureWiimoteX","AllGestureWiimoteY","AllGestureWiimoteZ","BME",
+    "SPY","ACSF1","AllGestureWiimoteX","AllGestureWiimoteY","AllGestureWiimoteZ","BME",
     "Chinatown","Crop","DodgerLoopDay","DodgerLoopGame","DodgerLoopWeekend",
     "EOGHorizontalSignal","EOGVerticalSignal","EthanolLevel","FreezerRegularTrain",
-    "FreezerSmallTrain", "GesturePebbleZ1","GesturePebbleZ2","GunPointAgeSpan","GunPointMaleVersusFemale",
+    "FreezerSmallTrain","Fungi","GestureMidAirD1","GestureMidAirD2","GestureMidAirD3",
+    "GesturePebbleZ1","GesturePebbleZ2","GunPointAgeSpan","GunPointMaleVersusFemale",
     "GunPointOldVersusYoung","HouseTwenty","InsectEPGRegularTrain","InsectEPGSmallTrain",
     "MelbournePedestrian","MixedShapesRegularTrain","MixedShapesSmallTrain","PLAID",
-    "PowerCons", "Rock","SemgHandGenderCh2", "SemgHandMovementCh2","SemgHandSubjectCh2",
-    "ShakeGestureWiimoteZ","SmoothSubspace"
-) #discover_ucr2018_tsv_datasets(args.input_path)
+    "PickupGestureWiimoteZ","PigAirwayPressure","PigArtPressure","PigCVP","PowerCons",
+    "Rock","SemgHandGenderCh2","SemgHandMovementCh2","SemgHandSubjectCh2",
+    "ShakeGestureWiimoteZ","SmoothSubspace","UMD"
+)
 
-print(f"Found {len(dataset_names_additional)} TSV datasets in: {args.input_path}")
+#dataset_names_additional = ( "SPY", "GestureMidAirD1","GestureMidAirD2")
 
 results_additional = pd.DataFrame(
     index=dataset_names_additional,
@@ -212,16 +189,27 @@ results_additional.index.name = "dataset"
 print("RUNNING".center(80, "="))
 
 for dataset_name in dataset_names_additional:
+
     print(dataset_name.center(80, "-"))
 
     print("Loading data".ljust(75, "."), end="", flush=True)
 
-    training_data = load_tsv(
-        f"{args.input_path}/{dataset_name}/{dataset_name}_TRAIN.tsv"
-    )
-    test_data = load_tsv(
-        f"{args.input_path}/{dataset_name}/{dataset_name}_TEST.tsv"
-    )
+    if dataset_name != "PLAID":
+        training_data = np.loadtxt(
+            f"{args.input_path}/{dataset_name}/{dataset_name}_TRAIN.txt"
+        )
+        test_data = np.loadtxt(
+            f"{args.input_path}/{dataset_name}/{dataset_name}_TEST.txt"
+        )
+    else:
+        training_data = np.loadtxt(
+            f"{args.input_path}/{dataset_name}/{dataset_name}_TRAIN.txt",
+            delimiter=","
+        )
+        test_data = np.loadtxt(
+            f"{args.input_path}/{dataset_name}/{dataset_name}_TEST.txt",
+            delimiter=","
+        )
 
     print("Done.")
 
@@ -240,20 +228,9 @@ for dataset_name in dataset_names_additional:
     results_additional.loc[dataset_name, "accuracy_mean"] = results.mean()
     results_additional.loc[dataset_name, "accuracy_standard_deviation"] = results.std(ddof=0)
 
-    results_additional.loc[dataset_name, "time_training_seconds"] = (
-        timings_mean[0] + timings_mean[1] + timings_mean[2]
-    )
+    results_additional.loc[dataset_name, "time_training_seconds"] = ( timings_mean[0] + timings_mean[1] + timings_mean[2])
 
-    results_additional.loc[dataset_name, "time_test_seconds"] = (
-        timings_mean[3] + timings_mean[4]
-    )
+    results_additional.loc[dataset_name, "time_test_seconds"] = ( timings_mean[3] + timings_mean[4])
 
 print("FINISHED".center(80, "="))
-
-# Ensure output_path ends with / or provide a full filename in output_path
-out_file = args.output_path
-if os.path.isdir(out_file) or out_file.endswith("/") or out_file.endswith("\\"):
-    out_file = os.path.join(out_file, "results_additional_aen_tsv.csv")
-
-results_additional.to_csv(out_file, index=True)
-print(f"Saved: {out_file}")
+results_additional.to_csv(f"{args.output_path}results_additional_aen.csv")

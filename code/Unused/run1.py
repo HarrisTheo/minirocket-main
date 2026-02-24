@@ -2,28 +2,11 @@ import argparse
 import time
 import numpy as np
 import pandas as pd
-import os
-import re
 
 from minirocket import fit, transform
 from sklearn.linear_model import RidgeClassifierCV
-
-def discover_ucr2018_datasets(input_path: str):
-
-    dataset_names = []
-    for name in sorted(os.listdir(input_path)):
-        ds_dir = os.path.join(input_path, name)
-        
-        if not os.path.isdir(ds_dir):
-            continue
-
-        train_path = os.path.join(ds_dir, f"{name}_TRAIN.tsv")
-        test_path  = os.path.join(ds_dir, f"{name}_TEST.tsv")
-
-        if os.path.isfile(train_path) and os.path.isfile(test_path):
-            dataset_names.append(name)
-
-    return tuple(dataset_names)
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import SGDClassifier
 
 # ==========================================================
 # SINGLE RUN (PURE MINIROCKET)
@@ -94,19 +77,6 @@ def run_minirocket(training_data, test_data, num_runs=10):
     return results, timings
 
 # ==========================================================
-# DATA LOADING HELPERS
-# ==========================================================
-def load_tsv(path: str) -> np.ndarray:
-    """
-    Load a TSV where:
-      - first column is the label
-      - remaining columns are the time-series values
-    Returns a float64 numpy array (same shape behavior as np.loadtxt).
-    """
-    df = pd.read_csv(path, sep="\t", header=None)
-    return df.to_numpy()
-
-# ==========================================================
 # MAIN SCRIPT
 # ==========================================================
 parser = argparse.ArgumentParser()
@@ -116,17 +86,19 @@ parser.add_argument("-n", "--num_runs", type=int, default=10)
 args = parser.parse_args()
 
 dataset_names_additional = (
-    "SPY","AllGestureWiimoteX","AllGestureWiimoteY","AllGestureWiimoteZ","BME",
+    "SPY","ACSF1","AllGestureWiimoteX","AllGestureWiimoteY","AllGestureWiimoteZ","BME",
     "Chinatown","Crop","DodgerLoopDay","DodgerLoopGame","DodgerLoopWeekend",
     "EOGHorizontalSignal","EOGVerticalSignal","EthanolLevel","FreezerRegularTrain",
-    "FreezerSmallTrain", "GesturePebbleZ1","GesturePebbleZ2","GunPointAgeSpan","GunPointMaleVersusFemale",
+    "FreezerSmallTrain","Fungi","GestureMidAirD1","GestureMidAirD2","GestureMidAirD3",
+    "GesturePebbleZ1","GesturePebbleZ2","GunPointAgeSpan","GunPointMaleVersusFemale",
     "GunPointOldVersusYoung","HouseTwenty","InsectEPGRegularTrain","InsectEPGSmallTrain",
     "MelbournePedestrian","MixedShapesRegularTrain","MixedShapesSmallTrain","PLAID",
-    "PowerCons", "Rock","SemgHandGenderCh2", "SemgHandMovementCh2","SemgHandSubjectCh2",
-    "ShakeGestureWiimoteZ","SmoothSubspace"
-)  #discover_ucr2018_datasets(args.input_path)
+    "PickupGestureWiimoteZ","PigAirwayPressure","PigArtPressure","PigCVP","PowerCons",
+    "Rock","SemgHandGenderCh2","SemgHandMovementCh2","SemgHandSubjectCh2",
+    "ShakeGestureWiimoteZ","SmoothSubspace","UMD"
+)
 
-print(f"Found {len(dataset_names_additional)} datasets in {args.input_path}")
+#dataset_names_additional = ("GestureMidAirD1","GestureMidAirD2")
 
 results_additional = pd.DataFrame(
     index=dataset_names_additional,
@@ -138,6 +110,7 @@ results_additional = pd.DataFrame(
     ],
     data=0.0,
 )
+
 results_additional.index.name = "dataset"
 
 print("RUNNING".center(80, "="))
@@ -145,14 +118,25 @@ print("RUNNING".center(80, "="))
 for dataset_name in dataset_names_additional:
 
     print(dataset_name.center(80, "-"))
+
     print("Loading data".ljust(75, "."), end="", flush=True)
 
-    # ---- TSV version (expects *_TRAIN.tsv and *_TEST.tsv) ----
-    training_path = f"{args.input_path}/{dataset_name}/{dataset_name}_TRAIN.tsv"
-    test_path = f"{args.input_path}/{dataset_name}/{dataset_name}_TEST.tsv"
-
-    training_data = load_tsv(training_path)
-    test_data = load_tsv(test_path)
+    if dataset_name != "PLAID":
+        training_data = np.loadtxt(
+            f"{args.input_path}/{dataset_name}/{dataset_name}_TRAIN.txt"
+        )
+        test_data = np.loadtxt(
+            f"{args.input_path}/{dataset_name}/{dataset_name}_TEST.txt"
+        )
+    else:
+        training_data = np.loadtxt(
+            f"{args.input_path}/{dataset_name}/{dataset_name}_TRAIN.txt",
+            delimiter=","
+        )
+        test_data = np.loadtxt(
+            f"{args.input_path}/{dataset_name}/{dataset_name}_TEST.txt",
+            delimiter=","
+        )
 
     print("Done.")
 
@@ -180,4 +164,4 @@ for dataset_name in dataset_names_additional:
     )
 
 print("FINISHED".center(80, "="))
-results_additional.to_csv(f"{args.output_path}results_minirocket_baseline_tsv.csv", index=True)
+results_additional.to_csv(f"{args.output_path}results_minirocket_baseline.csv")

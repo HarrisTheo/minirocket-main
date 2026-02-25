@@ -12,11 +12,7 @@ from sklearn.preprocessing import StandardScaler
 # AEN PLASTICITY REGULATOR (NO Q-VALUES)
 # ==========================================================
 class AENRegulator:
-    """
-    AEN used purely as plasticity controller.
-    It does NOT choose actions.
-    It only regulates adaptation pressure.
-    """
+    
     def __init__(self):
         self.ego = 0.5
         self.c_drive = 0.5
@@ -47,26 +43,19 @@ class AENRegulator:
 # TSV LOADER
 # ==========================================================
 def load_tsv(path: str) -> np.ndarray:
-    """
-    Loads a TSV where:
-      - first column is the class label
-      - remaining columns are the series values
-    Returns a numpy array (like np.loadtxt would).
-    """
     df = pd.read_csv(path, sep="\t", header=None)
+    
     return df.to_numpy()
 
 # ==========================================================
 # DATASET DISCOVERY (TSV VERSION)
 # ==========================================================
 def discover_ucr2018_tsv_datasets(input_path: str):
-    """
-    Discover datasets by scanning subfolders and keeping only those
-    that contain <name>_TRAIN.tsv and <name>_TEST.tsv.
-    """
     dataset_names = []
+
     for name in sorted(os.listdir(input_path)):
         ds_dir = os.path.join(input_path, name)
+        
         if not os.path.isdir(ds_dir):
             continue
 
@@ -250,7 +239,6 @@ for dataset_name in dataset_names_additional:
 
 print("FINISHED".center(80, "="))
 
-# Ensure output_path ends with / or provide a full filename in output_path
 out_file = args.output_path
 if os.path.isdir(out_file) or out_file.endswith("/") or out_file.endswith("\\"):
     out_file = os.path.join(out_file, "results_additional_aen_tsv.csv")

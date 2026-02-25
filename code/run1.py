@@ -97,13 +97,8 @@ def run_minirocket(training_data, test_data, num_runs=10):
 # DATA LOADING HELPERS
 # ==========================================================
 def load_tsv(path: str) -> np.ndarray:
-    """
-    Load a TSV where:
-      - first column is the label
-      - remaining columns are the time-series values
-    Returns a float64 numpy array (same shape behavior as np.loadtxt).
-    """
     df = pd.read_csv(path, sep="\t", header=None)
+
     return df.to_numpy()
 
 # ==========================================================
@@ -147,7 +142,6 @@ for dataset_name in dataset_names_additional:
     print(dataset_name.center(80, "-"))
     print("Loading data".ljust(75, "."), end="", flush=True)
 
-    # ---- TSV version (expects *_TRAIN.tsv and *_TEST.tsv) ----
     training_path = f"{args.input_path}/{dataset_name}/{dataset_name}_TRAIN.tsv"
     test_path = f"{args.input_path}/{dataset_name}/{dataset_name}_TEST.tsv"
 

@@ -9,8 +9,8 @@ from minirocket import fit, transform
 from sklearn.linear_model import RidgeClassifierCV
 
 def discover_ucr2018_datasets(input_path: str):
-
     dataset_names = []
+    
     for name in sorted(os.listdir(input_path)):
         ds_dir = os.path.join(input_path, name)
         
@@ -18,7 +18,7 @@ def discover_ucr2018_datasets(input_path: str):
             continue
 
         train_path = os.path.join(ds_dir, f"{name}_TRAIN.tsv")
-        test_path  = os.path.join(ds_dir, f"{name}_TEST.tsv")
+        test_path = os.path.join(ds_dir, f"{name}_TEST.tsv")
 
         if os.path.isfile(train_path) and os.path.isfile(test_path):
             dataset_names.append(name)

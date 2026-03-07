@@ -14,22 +14,22 @@ from sklearn.preprocessing import StandardScaler
 class AENRegulator:
     
     def __init__(self):
-        self.ego = 0.5
+        self.fidelity = 0.5
         self.c_drive = 0.5
-        self.alpha_ego = 0.15
+        self.alpha_fidelity = 0.15
         self.alpha_c = 0.10
 
     def update(self, error):
         surprise = abs(error)
 
-        # Ego calibration
-        self.ego = (1 - self.alpha_ego) * self.ego + \
-                   self.alpha_ego * (1.0 - surprise)
+        # Fidelity (performance confidence) calibration
+        self.fidelity = (1 - self.alpha_fidelity) * self.fidelity + \
+                   self.alpha_fidelity * (1.0 - surprise)
 
         # Regulatory layer
-        target_c = 1.0 - self.ego
+        target_c = 1.0 - self.fidelity
 
-        if self.ego > 0.85:
+        if self.fidelity > 0.85:
             target_c *= 0.3  # Deep settling when stable
 
         self.c_drive = (1 - self.alpha_c) * self.c_drive + \

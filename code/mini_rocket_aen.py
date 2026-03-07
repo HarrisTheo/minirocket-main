@@ -166,14 +166,15 @@ def run_minirocket(training_data, test_data, num_runs=1):
 # ==========================================================
 # MAIN SCRIPT
 # ==========================================================
-parser = argparse.ArgumentParser()
+
+parser = argparse.ArgumentParser() #Create the command-line argument parser
 parser.add_argument("-i", "--input_path", required=True)
 parser.add_argument("-o", "--output_path", required=True)
 parser.add_argument("-n", "--num_runs", type=int, default=10)
-parser.add_argument("-k", "--num_kernels", type=int, default=10_000)  # kept for compatibility
+parser.add_argument("-k", "--num_kernels", type=int, default=10_000)
 args = parser.parse_args()
 
-dataset_names_additional = (
+dataset_names_additional = ( # Fixed list of additional TSV datasets to evaluate
     "SPY","AllGestureWiimoteX","AllGestureWiimoteY","AllGestureWiimoteZ","BME",
     "Chinatown","Crop","DodgerLoopDay","DodgerLoopGame","DodgerLoopWeekend",
     "EOGHorizontalSignal","EOGVerticalSignal","EthanolLevel","FreezerRegularTrain",
@@ -182,13 +183,13 @@ dataset_names_additional = (
     "MelbournePedestrian","MixedShapesRegularTrain","MixedShapesSmallTrain","PLAID",
     "PowerCons", "Rock","SemgHandGenderCh2", "SemgHandMovementCh2","SemgHandSubjectCh2",
     "ShakeGestureWiimoteZ","SmoothSubspace"
-) #discover_ucr2018_tsv_datasets(args.input_path)
+)
 
-print(f"Found {len(dataset_names_additional)} TSV datasets in: {args.input_path}")
+print(f"Found {len(dataset_names_additional)} TSV datasets in: {args.input_path}") # Print how many datasets will be processed
 
-results_additional = pd.DataFrame(
+results_additional = pd.DataFrame( # Create a results table to store summary statistics for each dataset
     index=dataset_names_additional,
-    columns=[
+    columns=[ 
         "accuracy_mean",
         "accuracy_standard_deviation",
         "time_training_seconds",
@@ -196,52 +197,39 @@ results_additional = pd.DataFrame(
     ],
     data=0.0,
 )
-results_additional.index.name = "dataset"
 
-print("RUNNING".center(80, "="))
+results_additional.index.name = "dataset" #Name the DataFrame index column
+
+print("RUNNING".center(80, "=")) #Print a header for the experiment execution
 
 for dataset_name in dataset_names_additional:
     print(dataset_name.center(80, "-"))
 
-    print("Loading data".ljust(75, "."), end="", flush=True)
+    print("Loading data".ljust(75, "."), end="", flush=True) # Show progress message before loading files
 
-    training_data = load_tsv(
-        f"{args.input_path}/{dataset_name}/{dataset_name}_TRAIN.tsv"
-    )
-    test_data = load_tsv(
-        f"{args.input_path}/{dataset_name}/{dataset_name}_TEST.tsv"
-    )
+    training_data = load_tsv( f"{args.input_path}/{dataset_name}/{dataset_name}_TRAIN.tsv")
+    test_data = load_tsv( f"{args.input_path}/{dataset_name}/{dataset_name}_TEST.tsv")
 
     print("Done.")
 
     print("Performing runs".ljust(75, "."), end="", flush=True)
 
-    results, timings = run_minirocket(
-        training_data,
-        test_data,
-        num_runs=args.num_runs
-    )
-
-    timings_mean = timings.mean(axis=1)
+    results, timings = run_minirocket( training_data, test_data, num_runs=args.num_runs) #Run the MiniRocket + AEN pipeline multiple times
+    timings_mean = timings.mean(axis=1) #Compute the mean time for each timing stage across runs
 
     print("Done.")
 
     results_additional.loc[dataset_name, "accuracy_mean"] = results.mean()
     results_additional.loc[dataset_name, "accuracy_standard_deviation"] = results.std(ddof=0)
 
-    results_additional.loc[dataset_name, "time_training_seconds"] = (
-        timings_mean[0] + timings_mean[1] + timings_mean[2]
-    )
+    results_additional.loc[dataset_name, "time_training_seconds"] = ( timings_mean[0] + timings_mean[1] + timings_mean[2])
+    results_additional.loc[dataset_name, "time_test_seconds"] = ( timings_mean[3] + timings_mean[4])
 
-    results_additional.loc[dataset_name, "time_test_seconds"] = (
-        timings_mean[3] + timings_mean[4]
-    )
+print("FINISHED".center(80, "=")) # Print completion message
 
-print("FINISHED".center(80, "="))
-
-out_file = args.output_path
+out_file = args.output_path # Determine final output file path
 if os.path.isdir(out_file) or out_file.endswith("/") or out_file.endswith("\\"):
     out_file = os.path.join(out_file, "results_additional_aen_tsv.csv")
 
 results_additional.to_csv(out_file, index=True)
-print(f"Saved: {out_file}")
+print(f"Saved: {out_file}") # Print where the file was saved

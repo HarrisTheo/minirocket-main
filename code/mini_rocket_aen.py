@@ -43,7 +43,7 @@ class AENRegulator:
 # TSV LOADER
 # ==========================================================
 def load_tsv(path: str) -> np.ndarray:
-    df = pd.read_csv(path, sep="\t", header=None)
+    df = pd.read_csv(path, sep="\t", header=None) #Load a TSV file with no header and return it as a NumPy array
     
     return df.to_numpy()
 
@@ -51,28 +51,28 @@ def load_tsv(path: str) -> np.ndarray:
 # DATASET DISCOVERY (TSV VERSION)
 # ==========================================================
 def discover_ucr2018_tsv_datasets(input_path: str):
-    dataset_names = []
+    dataset_names = [] #Store dataset names that contain both TRAIN and TEST TSV files
 
-    for name in sorted(os.listdir(input_path)):
+    for name in sorted(os.listdir(input_path)): #Iterate through all entries in the given directory
         ds_dir = os.path.join(input_path, name)
         
         if not os.path.isdir(ds_dir):
             continue
 
-        train_path = os.path.join(ds_dir, f"{name}_TRAIN.tsv")
+        train_path = os.path.join(ds_dir, f"{name}_TRAIN.tsv") #Expected UCR-style file names
         test_path = os.path.join(ds_dir, f"{name}_TEST.tsv")
 
         if os.path.isfile(train_path) and os.path.isfile(test_path):
             dataset_names.append(name)
 
-    return tuple(dataset_names)
+    return tuple(dataset_names) #Return dataset names as a tuple for stable/immutable output
 
 # ==========================================================
 # SINGLE RUN
 # ==========================================================
 def run_minirocket_once(training_data, test_data):
-    y_train = training_data[:, 0].astype(int)
-    X_train = training_data[:, 1:].astype(np.float32)
+    y_train = training_data[:, 0].astype(int) #Extract labels and features from the training set
+    X_train = training_data[:, 1:].astype(np.float32) #Extract labels and features from the test set
 
     y_test = test_data[:, 0].astype(int)
     X_test = test_data[:, 1:].astype(np.float32)
@@ -81,35 +81,35 @@ def run_minirocket_once(training_data, test_data):
     # MiniRocket Fit
     # --------------------------------------------------
     t0 = time.perf_counter()
-    parameters = fit(X_train)
+    parameters = fit(X_train) #Learn MiniRocket kernel parameters from the training data
     t1 = time.perf_counter()
 
-    X_train_t = transform(X_train, parameters)
+    X_train_t = transform(X_train, parameters)  #Transform training data into MiniRocket feature space
     t2 = time.perf_counter()
 
     # --------------------------------------------------
     # Feature Scaling
     # --------------------------------------------------
-    scaler = StandardScaler(with_mean=False)
+    scaler = StandardScaler(with_mean=False) #Scale transformed features before classifier training
     scaler.fit(X_train_t)
     X_train_t = scaler.transform(X_train_t)
 
     # --------------------------------------------------
     # Online Classifier (instead of Ridge)
     # --------------------------------------------------
-    clf = SGDClassifier(
+    clf = SGDClassifier( #Train an SGD logistic classifier as the base online learner
         loss="log_loss",
         learning_rate="constant",
         eta0=0.01
     )
 
-    clf.fit(X_train_t, y_train)
+    clf.fit(X_train_t, y_train) #Initial fit on the transformed training set
     t3 = time.perf_counter()
 
     # --------------------------------------------------
     # Transform Test Data
     # --------------------------------------------------
-    X_test_t = transform(X_test, parameters)
+    X_test_t = transform(X_test, parameters) #Apply the same MiniRocket transform and scaling to test data
     X_test_t = scaler.transform(X_test_t)
     t4 = time.perf_counter()
 
@@ -119,22 +119,22 @@ def run_minirocket_once(training_data, test_data):
     regulator = AENRegulator()
     preds = []
 
-    base_lr = 0.01
+    base_lr = 0.01 #Base learning rate before regulation
 
-    for i in range(len(X_test_t)):
-        x = X_test_t[i:i+1]
+    for i in range(len(X_test_t)): #Process the test set sequentially, one example at a time
+        x = X_test_t[i:i+1] #Select one test sample and its true label
         y_true = y_test[i]
 
-        y_pred = clf.predict(x)[0]
+        y_pred = clf.predict(x)[0] #Predict before updating, simulating a streaming scenario
         preds.append(y_pred)
 
         error = int(y_pred != y_true)
-        regulator.update(error)
+        regulator.update(error)  #Update the regulator based on the latest prediction error
 
-        cap = 0.01 / np.sqrt(i + 1)
+        cap = 0.01 / np.sqrt(i + 1) # Adapt the classifier learning rate using the regulator output
         clf.eta0 = min(base_lr * regulator.scale(), cap)
 
-        clf.partial_fit(x, [y_true])
+        clf.partial_fit(x, [y_true]) # Perform an online update with the newly observed example
 
     acc = np.mean(np.array(preds) == y_test)
     t5 = time.perf_counter()
